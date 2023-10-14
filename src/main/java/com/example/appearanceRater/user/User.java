@@ -1,14 +1,13 @@
 package com.example.appearanceRater.user;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-@Data
 @RequiredArgsConstructor
 @AllArgsConstructor
+@Data
 abstract class User {
     @NotNull
     @Size(min = 5, max = 24)
@@ -21,6 +20,6 @@ abstract class User {
     private String password;
 
     @NotNull
-    @Email
+    @Pattern(regexp = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")
     private String email;
 }
