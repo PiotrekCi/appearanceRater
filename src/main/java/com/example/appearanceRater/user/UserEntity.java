@@ -1,11 +1,9 @@
 package com.example.appearanceRater.user;
 
+import com.example.appearanceRater.token.Token;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,7 +14,7 @@ import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-@Builder
+@SuperBuilder
 @Entity
 @Table(name = "_user")
 @RequiredArgsConstructor
@@ -27,7 +25,10 @@ public class UserEntity extends User implements UserDetails {
     private Integer id;
     @Enumerated(EnumType.ORDINAL)
     private Role role;
-
+    @OneToMany(mappedBy = "user")
+    private List<Token> token;
+    private boolean enabled;
+    private boolean accountNonLocked;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
@@ -42,7 +43,7 @@ public class UserEntity extends User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return accountNonLocked;
     }
 
     @Override
@@ -52,6 +53,6 @@ public class UserEntity extends User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

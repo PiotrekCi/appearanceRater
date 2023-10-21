@@ -1,5 +1,6 @@
 package com.example.appearanceRater.auth;
 
+import com.example.appearanceRater.exception.InvalidTokenException;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,5 +19,10 @@ public class AuthController {
         return ResponseEntity.ok(
                 authService.register(userRegistrationForm)
         );
+    }
+
+    @GetMapping("/activate")
+    public void activate(@RequestParam String token) {
+        authService.activate(token);
     }
 }
