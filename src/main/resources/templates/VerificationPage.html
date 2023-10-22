@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <title>Verification Page - Appearance Rater</title>
+    <style>
+        body {
+            background-color: #1F2021;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 700px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #22343C;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 48px;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .alert-danger {
+            background-color: #d9534f;
+            border-color: #d43f3a;
+        }
+
+        .alert-success {
+            background-color: #5cb85c;
+            border-color: #4cae4c;
+        }
+
+        button {
+            background-color: #007bff;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Appearance Rater</h1>
+        <div th:if="${expired}" class="alert alert-danger">
+            The verification link has expired. Please request a new one.
+        </div>
+        <form th:if="${expired}"
+              action="#"
+              th:action="@{/api/v1/auth/resend-verification}"
+              method="post"
+        >
+            <input type="hidden" name="token" th:value="${token}" />
+            <button type="submit">Resend Verification Link</button>
+        </form>
+
+        <th:block th:unless="${expired}">
+            <div class="alert alert-success">
+                Your account has been successfully verified!
+            </div>
+        </th:block>
+</div>
+</body>
+</html>

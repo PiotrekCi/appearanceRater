@@ -13,7 +13,7 @@ import lombok.experimental.SuperBuilder;
 @Data
 @MappedSuperclass
 @SuperBuilder
-abstract class User {
+public abstract class User {
     @NotNull
     @Size(min = 5, max = 24)
     @Pattern(regexp = "^[a-zA-Z0-9äöüÄÖÜ_.-]*$")
