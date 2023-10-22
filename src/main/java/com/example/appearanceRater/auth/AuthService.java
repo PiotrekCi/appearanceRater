@@ -1,6 +1,7 @@
 package com.example.appearanceRater.auth;
 
 import com.example.appearanceRater.event.RegistrationCompleteEvent;
+import com.example.appearanceRater.event.ResentActivationEvent;
 import com.example.appearanceRater.exception.CredentialsTakenException;
 import com.example.appearanceRater.exception.InvalidTokenException;
 import com.example.appearanceRater.token.Token;
@@ -14,11 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
+import org.springframework.web.servlet.ModelAndView;
 
 import static com.example.appearanceRater.token.TokenType.ACTIVATING;
 
@@ -30,7 +27,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final TokenRepository tokenRepository;
     private final ApplicationContext applicationContext;
-    public AuthenticationResponse register(UserRegistrationForm userRegistrationForm) {
+    public void register(UserRegistrationForm userRegistrationForm) {
         boolean emailExists = userRepository.findByEmail(userRegistrationForm.getEmail()).isPresent();
         boolean usernameExists = userRepository.findByUsername(userRegistrationForm.getUsername()).isPresent();
         if (emailExists || usernameExists) {
@@ -64,28 +61,56 @@ public class AuthService {
         );
 
         applicationContext.publishEvent(new RegistrationCompleteEvent(this, user, activatingToken));
-
-        return AuthenticationResponse.builder()
-                .accessToken(token)
-                .refreshToken("")
-                .build();
     }
 
-    public void activate(String token) {
+    public ModelAndView activate(String token) {
         if (token == null) {
             throw new InvalidTokenException("Invalid token.");
         }
 
+        ModelAndView modelAndView = new ModelAndView("VerificationPage.html");
         Token activatingToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token doesn't exist."));
-        Date expiration = jwtService.extractExpiration(activatingToken.getToken());
 
-        if (expiration.after(Date.from(Instant.now().plus(23, ChronoUnit.HOURS).plus(56, ChronoUnit.MINUTES)))) {
-          System.out.println("Expired token");
-          //ToDo resent email with new activating token
-          return;
+        /**
+            In case of someone clicking twice before Event sends mail and deletes token from repository we mark it with flag
+            {@link com.example.appearanceRater.event.ResentActivationEventListener.java:21}
+         */
+        if (activatingToken.isRevoked()) {
+            throw new InvalidTokenException("Invalid token.");
+        }
+
+        if (jwtService.isExpired(activatingToken)) {
+            modelAndView.addObject("expired", true);
+            modelAndView.addObject("token", activatingToken.getToken());
+            activatingToken.setExpired(true);
+            return modelAndView;
         }
 
         activatingToken.getUser().setEnabled(true);
         tokenRepository.delete(activatingToken);
+
+        return modelAndView;
+    }
+
+    public ModelAndView resentVerification(String token) {
+        System.out.println(token);
+        ModelAndView modelAndView = new ModelAndView("ResentVerification.html");
+        Token expiredToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token doesn't exist."));
+        UserEntity user = expiredToken.getUser();
+        String newToken = jwtService.generateToken(user);
+        Token activeToken = tokenRepository.save(Token.builder()
+                .expired(false)
+                .revoked(false)
+                .token(newToken)
+                .user(user)
+                .type(ACTIVATING)
+                .build()
+        );
+
+        expiredToken.setRevoked(true);
+        applicationContext.publishEvent(new ResentActivationEvent(this, user, activeToken, expiredToken));
+
+        modelAndView.addObject("sentTo", user.getEmail());
+        return modelAndView;
     }
 }

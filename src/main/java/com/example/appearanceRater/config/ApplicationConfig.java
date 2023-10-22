@@ -40,6 +40,7 @@ public class ApplicationConfig {
     @Bean
     public SimpleMailMessage simpleMailMessage() {
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
+        //ToDo shouldn't be hardcoded
         simpleMailMessage.setFrom("mailer.meech@gmail.com");
         return simpleMailMessage;
     }

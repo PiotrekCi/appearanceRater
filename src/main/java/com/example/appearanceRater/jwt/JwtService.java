@@ -1,8 +1,10 @@
 package com.example.appearanceRater.jwt;
 
+import com.example.appearanceRater.token.Token;
 import com.example.appearanceRater.user.UserEntity;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +33,9 @@ public class JwtService {
     }
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+    public boolean isExpired(Token token) {
+        return Date.from(Instant.now()).after(extractExpiration(token.getToken()));
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> getClaim) {
