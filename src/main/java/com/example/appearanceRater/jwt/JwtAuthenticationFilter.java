@@ -1,5 +1,7 @@
 package com.example.appearanceRater.jwt;
 
+import com.example.appearanceRater.token.Token;
+import com.example.appearanceRater.token.TokenRepository;
 import com.example.appearanceRater.user.UserEntity;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,9 +9,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,6 +24,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final TokenRepository tokenRepository;
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -44,7 +49,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserEntity user = (UserEntity) userDetailsService.loadUserByUsername(userEmail);
-
+            Token token = tokenRepository.findAuthenticatingToken(jwtToken).orElseThrow();
+            if (jwtService.isTokenValid(token.getToken(), user) && !token.isRevoked()) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        user,
+                        null,
+                        user.getAuthorities()
+                );
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            } else if (jwtService.isExpired(token.getToken())) {
+                token.setExpired(true);
+                tokenRepository.save(token);
+            }
         }
         filterChain.doFilter(request, response);
     }

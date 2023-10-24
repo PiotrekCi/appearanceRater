@@ -26,6 +26,7 @@ public class UserEntity extends User implements UserDetails {
     @Enumerated(EnumType.ORDINAL)
     private Role role;
     @OneToMany(mappedBy = "user")
+    @ToString.Exclude
     private List<Token> token;
     private boolean enabled;
     private boolean accountNonLocked;
