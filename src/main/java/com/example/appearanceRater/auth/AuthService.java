@@ -11,13 +11,25 @@ import com.example.appearanceRater.user.Role;
 import com.example.appearanceRater.user.UserEntity;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import com.example.appearanceRater.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.io.IOException;
+import java.util.List;
+
 import static com.example.appearanceRater.token.TokenType.ACTIVATING;
+import static com.example.appearanceRater.token.TokenType.AUTHENTICATION;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +39,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final TokenRepository tokenRepository;
     private final ApplicationContext applicationContext;
+    private final AuthenticationManager authenticationManager;
     public void register(UserRegistrationForm userRegistrationForm) {
         boolean emailExists = userRepository.findByEmail(userRegistrationForm.getEmail()).isPresent();
         boolean usernameExists = userRepository.findByUsername(userRegistrationForm.getUsername()).isPresent();
@@ -79,10 +92,12 @@ public class AuthService {
             throw new InvalidTokenException("Invalid token.");
         }
 
-        if (jwtService.isExpired(activatingToken)) {
+        if (jwtService.isExpired(activatingToken.getToken())) {
             modelAndView.addObject("expired", true);
             modelAndView.addObject("token", activatingToken.getToken());
             activatingToken.setExpired(true);
+            activatingToken.setRevoked(true);
+            tokenRepository.save(activatingToken);
             return modelAndView;
         }
 
@@ -93,7 +108,6 @@ public class AuthService {
     }
 
     public ModelAndView resentVerification(String token) {
-        System.out.println(token);
         ModelAndView modelAndView = new ModelAndView("ResentVerification.html");
         Token expiredToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token doesn't exist."));
         UserEntity user = expiredToken.getUser();
@@ -107,10 +121,81 @@ public class AuthService {
                 .build()
         );
 
-        expiredToken.setRevoked(true);
         applicationContext.publishEvent(new ResentActivationEvent(this, user, activeToken, expiredToken));
 
         modelAndView.addObject("sentTo", user.getEmail());
         return modelAndView;
+    }
+
+    @Transactional
+    public ResponseEntity<AuthenticationResponse> authenticate(AuthenticationRequest authenticationRequest) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                authenticationRequest.getUser(),
+                authenticationRequest.getPassword()
+        ));
+        UserEntity user = userRepository.findByCredentials(authenticationRequest.getUser()).orElseThrow();
+
+        String token = jwtService.generateToken(user);
+        clearUserAuthenticatingTokensState(user);
+
+        tokenRepository.save(Token.builder()
+                .token(token)
+                .type(AUTHENTICATION)
+                .revoked(false)
+                .expired(false)
+                .user(user)
+                .build()
+        );
+
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        return ResponseEntity.ok().body(
+                AuthenticationResponse.builder()
+                        .refreshToken(refreshToken)
+                        .accessToken(token)
+                        .roles(List.of(user.getRole()))
+                        .build()
+        );
+    }
+
+    @Transactional
+    public void refreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        final String refreshToken;
+        final String userEmail;
+        if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
+            return;
+        }
+        refreshToken = authHeader.substring(7);
+        userEmail = jwtService.extractSubject(refreshToken);
+        if (userEmail != null) {
+            final UserEntity user = this.userRepository.findByEmail(userEmail)
+                    .orElseThrow();
+            if (jwtService.isTokenValid(refreshToken, user)) {
+                final String accessToken = jwtService.generateToken(user);
+                clearUserAuthenticatingTokensState(user);
+                tokenRepository.save(Token.builder()
+                        .type(AUTHENTICATION)
+                        .revoked(false)
+                        .expired(false)
+                        .token(accessToken)
+                        .user(user)
+                        .build()
+                );
+                var authResponse = AuthenticationResponse.builder()
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .roles(List.of(user.getRole()))
+                        .build();
+                new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
+            }
+        }
+    }
+
+    private void clearUserAuthenticatingTokensState(final UserEntity user) {
+        tokenRepository.deleteAllInvalidTokens(user.getId());
     }
 }
