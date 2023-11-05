@@ -3,9 +3,11 @@ package com.example.appearanceRater.token;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface TokenRepository extends JpaRepository<Token, Integer> {
     @Query("""
         SELECT t FROM Token t
