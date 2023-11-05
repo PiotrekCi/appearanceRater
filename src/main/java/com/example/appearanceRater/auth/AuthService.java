@@ -40,6 +40,7 @@ public class AuthService {
     private final TokenRepository tokenRepository;
     private final ApplicationContext applicationContext;
     private final AuthenticationManager authenticationManager;
+
     public void register(UserRegistrationForm userRegistrationForm) {
         boolean emailExists = userRepository.findByEmail(userRegistrationForm.getEmail()).isPresent();
         boolean usernameExists = userRepository.findByUsername(userRegistrationForm.getUsername()).isPresent();
@@ -62,7 +63,6 @@ public class AuthService {
         );
 
         String token = jwtService.generateToken(user);
-
 
         Token activatingToken = tokenRepository.save(Token.builder()
                 .expired(false)
