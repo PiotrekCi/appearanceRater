@@ -12,7 +12,7 @@ import java.security.Principal;
 @RequiredArgsConstructor
 public class UserService {
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository repository;
+    private final UserRepository userRepository;
     public void changePassword(ChangePasswordRequest changePasswordRequest, Principal connectedUser) {
         UserEntity userEntity = (UserEntity) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
 
@@ -30,6 +30,26 @@ public class UserService {
 
         userEntity.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
 
-        repository.save(userEntity);
+        userRepository.save(userEntity);
+    }
+
+    public void changeEmail(ChangeEmailRequest changeEmailRequest, Principal connectedUser) {
+        UserEntity userEntity = (UserEntity) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+
+        if (!passwordEncoder.matches(changeEmailRequest.getCurrentPassword(), userEntity.getPassword())) {
+            throw new IllegalStateException("Incorrect password.");
+        }
+
+        if (changeEmailRequest.getNewEmail().equals(userEntity.getEmail())) {
+            throw new IllegalStateException("New email cannot be the same as old email.");
+        }
+
+        if (userRepository.existsByEmail(userEntity.getEmail())) {
+            throw new IllegalStateException("Email already taken.");
+        }
+
+        userEntity.setEmail(changeEmailRequest.getNewEmail());
+
+        userRepository.save(userEntity);
     }
 }

@@ -1,8 +1,6 @@
 package com.example.appearanceRater.auth;
 
-import com.example.appearanceRater.event.RegistrationCompleteEventListener;
 import com.example.appearanceRater.exception.CredentialsTakenException;
-import com.example.appearanceRater.token.TokenRepository;
 import com.example.appearanceRater.token.TokenType;
 import com.example.appearanceRater.user.Role;
 import com.example.appearanceRater.user.UserEntity;
@@ -32,20 +30,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-public class AuthTest {
+public class AuthRegisterControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     UserRepository userRepository;
-    @Autowired
-    TokenRepository tokenRepository;
-
-    @Autowired
-    RegistrationCompleteEventListener registrationCompleteEventListener;
 
     @Test
     @DirtiesContext
-    void shouldRegisterUserAndCreateActivatingToken() throws Exception, InterruptedException {
+    void shouldRegisterUserAndCreateActivatingToken() throws Exception {
         //given
         UserRegistrationForm userRegistrationForm = validRegistrationForm();
         //when

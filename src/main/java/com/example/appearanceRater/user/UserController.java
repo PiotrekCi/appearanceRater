@@ -24,15 +24,12 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/remind-password")
-    public ResponseEntity<?> remindPassword() {
-        //ToDo
-        return ResponseEntity.noContent().build();
-    }
-
     @PostMapping("/change-email")
-    public ResponseEntity<?> changeEmail() {
-        //ToDo
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> changeEmail(
+         @RequestBody @Valid ChangeEmailRequest changeEmailRequest,
+         Principal principal
+    ) {
+        userService.changeEmail(changeEmailRequest, principal);
+        return ResponseEntity.ok().build();
     }
 }
