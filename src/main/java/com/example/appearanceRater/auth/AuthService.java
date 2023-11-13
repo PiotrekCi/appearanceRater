@@ -2,16 +2,19 @@ package com.example.appearanceRater.auth;
 
 import com.example.appearanceRater.event.RegistrationCompleteEvent;
 import com.example.appearanceRater.event.ResentActivationEvent;
+import com.example.appearanceRater.event.SendRecoveryEvent;
 import com.example.appearanceRater.exception.CredentialsTakenException;
 import com.example.appearanceRater.exception.InvalidTokenException;
 import com.example.appearanceRater.token.Token;
 import com.example.appearanceRater.token.TokenRepository;
 import com.example.appearanceRater.jwt.JwtService;
+import com.example.appearanceRater.user.RemindPasswordRequest;
 import com.example.appearanceRater.user.Role;
 import com.example.appearanceRater.user.UserEntity;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import com.example.appearanceRater.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.jdi.request.InvalidRequestStateException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +31,7 @@ import org.springframework.web.servlet.ModelAndView;
 import java.io.IOException;
 import java.util.List;
 
-import static com.example.appearanceRater.token.TokenType.ACTIVATING;
-import static com.example.appearanceRater.token.TokenType.AUTHENTICATION;
+import static com.example.appearanceRater.token.TokenType.*;
 
 @Service
 @RequiredArgsConstructor
@@ -109,7 +111,7 @@ public class AuthService {
 
     public ModelAndView resentVerification(String token) {
         ModelAndView modelAndView = new ModelAndView("ResentVerification.html");
-        Token expiredToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token doesn't exist."));
+        Token expiredToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token does not exist."));
         UserEntity user = expiredToken.getUser();
         String newToken = jwtService.generateToken(user);
         Token activeToken = tokenRepository.save(Token.builder()
@@ -193,6 +195,24 @@ public class AuthService {
                 new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
             }
         }
+    }
+
+    public void remindPassword(RemindPasswordRequest remindPasswordRequest) {
+        UserEntity userEntity = userRepository.findByEmail(remindPasswordRequest.getEmail()).orElseThrow(
+                () -> new InvalidRequestStateException("Email does not exists.")
+        );
+
+        final String recoveryToken = jwtService.generateToken(userEntity);
+        tokenRepository.save(Token.builder()
+                .token(recoveryToken)
+                .type(RECOVERY)
+                .revoked(false)
+                .expired(false)
+                .user(userEntity)
+                .build()
+        );
+
+        applicationContext.publishEvent(new SendRecoveryEvent(this, remindPasswordRequest.getEmail(), recoveryToken));
     }
 
     private void clearUserAuthenticatingTokensState(final UserEntity user) {

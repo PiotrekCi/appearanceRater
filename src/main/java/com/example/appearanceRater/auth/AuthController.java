@@ -1,5 +1,6 @@
 package com.example.appearanceRater.auth;
 
+import com.example.appearanceRater.user.RemindPasswordRequest;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,5 +48,12 @@ public class AuthController {
     @PostMapping("/resend-verification")
     public ModelAndView resendVerification(@RequestParam String token) {
         return authService.resentVerification(token);
+    }
+
+    @PostMapping("/remind-password")
+    public void remindPassword(
+            @RequestBody @Valid RemindPasswordRequest remindPasswordRequest
+    ) {
+        authService.remindPassword(remindPasswordRequest);
     }
 }

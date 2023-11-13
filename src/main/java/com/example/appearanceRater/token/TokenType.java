@@ -1,5 +1,5 @@
 package com.example.appearanceRater.token;
 
 public enum TokenType {
-    AUTHENTICATION, ACTIVATING
+    AUTHENTICATION, ACTIVATING, RECOVERY
 }
