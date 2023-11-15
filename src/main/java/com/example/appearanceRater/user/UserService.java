@@ -17,15 +17,15 @@ public class UserService {
         UserEntity userEntity = (UserEntity) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
 
         if (!passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), userEntity.getPassword())) {
-            throw new IllegalStateException("Incorrect password");
+            throw new IllegalStateException("Incorrect password.");
         }
 
         if (!changePasswordRequest.getNewPassword().equals(changePasswordRequest.getConfirmationPassword())) {
-            throw new IllegalStateException("Different passwords provided");
+            throw new IllegalStateException("Different passwords provided.");
         }
 
         if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), userEntity.getPassword())) {
-            throw new IllegalStateException("New password cannot be the same as old password");
+            throw new IllegalStateException("New password cannot be the same as old password.");
         }
 
         userEntity.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));

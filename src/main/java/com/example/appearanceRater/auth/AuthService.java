@@ -78,7 +78,7 @@ public class AuthService {
         applicationContext.publishEvent(new RegistrationCompleteEvent(this, user, activatingToken));
     }
 
-    public ModelAndView activate(String token) {
+    public ModelAndView activate(String token) throws InvalidTokenException {
         if (token == null) {
             throw new InvalidTokenException("Invalid token.");
         }
@@ -104,13 +104,14 @@ public class AuthService {
         }
 
         activatingToken.getUser().setEnabled(true);
+        userRepository.save(activatingToken.getUser());
         tokenRepository.delete(activatingToken);
 
         return modelAndView;
     }
 
     public ModelAndView resentVerification(String token) {
-        ModelAndView modelAndView = new ModelAndView("ResentVerification.html");
+        ModelAndView modelAndView = new ModelAndView("ResentVerificationPage.html");
         Token expiredToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token does not exist."));
         UserEntity user = expiredToken.getUser();
         String newToken = jwtService.generateToken(user);
@@ -124,7 +125,7 @@ public class AuthService {
         );
 
         applicationContext.publishEvent(new ResentActivationEvent(this, user, activeToken, expiredToken));
-
+        expiredToken.setRevoked(true);
         modelAndView.addObject("sentTo", user.getEmail());
         return modelAndView;
     }
@@ -201,10 +202,10 @@ public class AuthService {
         UserEntity userEntity = userRepository.findByEmail(remindPasswordRequest.getEmail()).orElseThrow(
                 () -> new InvalidRequestStateException("Email does not exists.")
         );
+        final String newToken = jwtService.generateToken(userEntity);
 
-        final String recoveryToken = jwtService.generateToken(userEntity);
-        tokenRepository.save(Token.builder()
-                .token(recoveryToken)
+        Token recoveryToken = tokenRepository.save(Token.builder()
+                .token(newToken)
                 .type(RECOVERY)
                 .revoked(false)
                 .expired(false)
@@ -213,6 +214,44 @@ public class AuthService {
         );
 
         applicationContext.publishEvent(new SendRecoveryEvent(this, remindPasswordRequest.getEmail(), recoveryToken));
+    }
+
+    public ModelAndView recoverPassword(String token) {
+        ModelAndView modelAndView = new ModelAndView("ChangePasswordPage.html");
+        Token recoveryToken = tokenRepository.findRecoveryToken(token).orElseThrow(() -> new InvalidTokenException("Token does not exist."));
+
+        if (jwtService.isExpired(token)) {
+            modelAndView.addObject("expired", true);
+            recoveryToken.setRevoked(true);
+            recoveryToken.setExpired(true);
+            tokenRepository.save(recoveryToken);
+            return modelAndView;
+        }
+
+        modelAndView.addObject("token", recoveryToken.getToken());
+
+        return modelAndView;
+    }
+
+    public ModelAndView recoveryPasswordChange(RecoveryPasswordChangeRequest recoveryPasswordChangeRequest) {
+        ModelAndView modelAndView = new ModelAndView("ChangePasswordSuccessfulPage.html");
+        Token recoveryToken = tokenRepository.findRecoveryToken(recoveryPasswordChangeRequest.getToken()).orElseThrow(() -> new InvalidTokenException("Token does not exist."));
+        UserEntity userEntity = recoveryToken.getUser();
+
+        if (!recoveryPasswordChangeRequest.getNewPassword().equals(recoveryPasswordChangeRequest.getNewPasswordConfirmation())) {
+            throw new IllegalStateException("Different passwords provided");
+        }
+
+        if (passwordEncoder.matches(recoveryPasswordChangeRequest.getNewPassword(), userEntity.getPassword())) {
+            throw new IllegalStateException("New password cannot be the same as old password");
+        }
+
+        recoveryToken.setRevoked(true);
+        tokenRepository.save(recoveryToken);
+        userEntity.setPassword(passwordEncoder.encode(recoveryPasswordChangeRequest.getNewPassword()));
+        userRepository.save(userEntity);
+
+        return modelAndView;
     }
 
     private void clearUserAuthenticatingTokensState(final UserEntity user) {

@@ -1,5 +1,6 @@
 package com.example.appearanceRater.auth;
 
+import com.example.appearanceRater.exception.InvalidTokenException;
 import com.example.appearanceRater.user.RemindPasswordRequest;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,7 +42,7 @@ public class AuthController {
     }
 
     @GetMapping("/activate")
-    public ModelAndView activate(@RequestParam String token) {
+    public ModelAndView activate(@RequestParam String token) throws InvalidTokenException {
         return authService.activate(token);
     }
 
@@ -55,5 +56,17 @@ public class AuthController {
             @RequestBody @Valid RemindPasswordRequest remindPasswordRequest
     ) {
         authService.remindPassword(remindPasswordRequest);
+    }
+
+    @PostMapping("/recovery-password-change")
+    public ModelAndView recoveryPasswordChange(
+        @RequestBody RecoveryPasswordChangeRequest recoveryPasswordChangeRequest
+    ) {
+        return authService.recoveryPasswordChange(recoveryPasswordChangeRequest);
+    }
+
+    @GetMapping("/password-recovery")
+    public ModelAndView passwordRecovery(@RequestParam String recoveryToken) {
+        return authService.recoverPassword(recoveryToken);
     }
 }

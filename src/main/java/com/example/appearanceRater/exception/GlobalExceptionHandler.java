@@ -23,4 +23,17 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(exceptionResponse, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ExceptionResponse> handleInvalidTokenException(InvalidTokenException invalidTokenException) {
+        ExceptionResponse exceptionResponse = new ExceptionResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                LocalDateTime.now(),
+                invalidTokenException.getMessage(),
+                invalidTokenException.getClass(),
+                Arrays.toString(invalidTokenException.getStackTrace())
+        );
+
+        return new ResponseEntity<>(exceptionResponse, HttpStatus.BAD_REQUEST);
+    }
 }

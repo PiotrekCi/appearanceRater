@@ -6,7 +6,6 @@ import com.example.appearanceRater.user.Role;
 import com.example.appearanceRater.user.UserEntity;
 import com.example.appearanceRater.user.UserRegistrationForm;
 import com.example.appearanceRater.user.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import static com.example.appearanceRater.utils.JsonUtils.asJsonString;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -34,7 +34,7 @@ public class AuthRegisterControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Test
     @DirtiesContext
@@ -161,10 +161,5 @@ public class AuthRegisterControllerTest {
 
     private static UserRegistrationForm validRegistrationForm() {
         return UserRegistrationForm.builder().email("test@oo.xy").password("aaaaaaB1@").username("user_name").build();
-    }
-
-    private String asJsonString(Object obj) throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(obj);
     }
 }
