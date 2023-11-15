@@ -17,6 +17,11 @@ public interface TokenRepository extends JpaRepository<Token, Integer> {
 
     @Query("""
         SELECT t FROM Token t
+        WHERE t.token LIKE ?1 AND t.type = 'RECOVERY'
+    """)
+    Optional<Token> findRecoveryToken(String token);
+    @Query("""
+        SELECT t FROM Token t
         WHERE t.token LIKE ?1 AND t.type = 'AUTHENTICATION'
     """)
     Optional<Token> findAuthenticatingToken(String token);

@@ -11,6 +11,6 @@ public class ExceptionResponse {
     private final int status;
     private final LocalDateTime timestamp;
     private final String message;
-    private final Class<? extends CredentialsTakenException> error;
+    private final Class<? extends RuntimeException> error;
     private final String stacktrace;
 }
