@@ -42,7 +42,7 @@ public class AuthController {
     }
 
     @GetMapping("/activate")
-    public ModelAndView activate(@RequestParam String token) throws InvalidTokenException {
+    public ModelAndView activate(@RequestParam String token) {
         return authService.activate(token);
     }
 

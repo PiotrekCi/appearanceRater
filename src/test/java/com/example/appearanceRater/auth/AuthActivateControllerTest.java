@@ -51,6 +51,7 @@ public class AuthActivateControllerTest {
         tokenRepository.save(activatingToken);
         when(jwtService.isExpired(activatingToken.getToken()))
                 .thenReturn(false);
+
         //when&then
         mockMvc.perform(get("/api/v1/auth/activate")
                         .param("token", activatingToken.getToken())
@@ -93,9 +94,9 @@ public class AuthActivateControllerTest {
 
     @Test
     @DirtiesContext
-    void shouldThrowInvalidTokenExceptionWhenActivatingTokenIsRevoked() throws Exception {
+    @SneakyThrows
+    void shouldThrowInvalidTokenExceptionWhenActivatingTokenIsRevoked() {
         //given
-        UserEntity user = user();
         Token activatingToken = activatingToken();
         activatingToken.setRevoked(true);
         tokenRepository.save(activatingToken);

@@ -78,11 +78,7 @@ public class AuthService {
         applicationContext.publishEvent(new RegistrationCompleteEvent(this, user, activatingToken));
     }
 
-    public ModelAndView activate(String token) throws InvalidTokenException {
-        if (token == null) {
-            throw new InvalidTokenException("Invalid token.");
-        }
-
+    public ModelAndView activate(String token) {
         ModelAndView modelAndView = new ModelAndView("VerificationPage.html");
         Token activatingToken = tokenRepository.findRegistrationToken(token).orElseThrow(() -> new InvalidTokenException("Token doesn't exist."));
 
